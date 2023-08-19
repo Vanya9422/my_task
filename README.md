@@ -11,8 +11,7 @@ This project demonstrates the use of RabbitMQ, MariaDB, and ClickHouse for proce
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/my-task.git
-   cd my-task
+   git clone https://github.com/Vanya9422/my_task.git && cd my-task
 
 Server: mariadb
 Username: root
