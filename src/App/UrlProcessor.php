@@ -2,55 +2,43 @@
 
 namespace App;
 
-use PhpAmqpLib\Connection\AMQPStreamConnection;
-use PhpAmqpLib\Exception\AMQPRuntimeException;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class UrlProcessor
 {
-	private $connection;
-	private $channel;
-	private $databaseQuery;
-
 	/**
-	 * @var string .env
+	 * Класс для обработки URL-ов и сохранения данных в базы данных.
+	 *
+	 * @param RabbitMQManager $rabbitMQManager Менеджер RabbitMQ для работы с очередью.
+	 * @param MariaDBDatabase $mariaDBDatabase База данных MariaDB.
+	 * @param ClickHouseDatabase $clickHouseDatabase База данных ClickHouse.
 	 */
-	private $rabbitHost = 'rabbitmq';
-	private $rabbitPort = 5672;
-	private $rabbitUser = 'rabbit_user';
-	private $rabbitPass = '1234';
-
-	public function __construct()
-	{
-		$this->connection = new AMQPStreamConnection(
-			$this->rabbitHost,
-			$this->rabbitPort,
-			$this->rabbitUser,
-			$this->rabbitPass
-		);
-
-		$this->channel = $this->connection->channel();
-
-		$this->databaseQuery = new DatabaseQuery();
-	}
+	public function __construct(
+		private RabbitMQManager $rabbitMQManager,
+		private MariaDBDatabase $mariaDBDatabase,
+		private ClickHouseDatabase $clickHouseDatabase,
+	) {}
 
 	/**
+	 * Обрабатывает URL-ы, сохраняет данные в обе базы данных.
+	 *
 	 * @return void
 	 */
-	public function processUrls()
-	{
-		$queueName = 'urls';
-		$this->channel->queue_declare($queueName, false, true, false, false);
-
+	public function processUrls() {
 		$messageCount = 0; // Счетчик обработанных сообщений
 
+		// Функция обратного вызова для обработки сообщений из очереди
 		$callback = function (AMQPMessage $msg) use (&$messageCount) {
+
+			// Если получено сообщение "quit", завершаем обработку
 			if ($msg->body === 'quit') {
-				$msg->getChannel()->basic_cancel($msg->getConsumerTag());
+				$this->rabbitMQManager->getChannel()->basic_cancel($msg->getConsumerTag());
 			} else {
 				$url = $msg->body;
 
-				$this->saveData($url, strlen($url));
+				// Сохраняем данные в MariaDB и ClickHouse
+				$this->mariaDBDatabase->saveData($url, strlen($url));
+				$this->clickHouseDatabase->saveData($url, strlen($url));
 
 				$msg->ack();
 
@@ -58,29 +46,25 @@ class UrlProcessor
 
 				// Если достигнуто максимальное количество сообщений, завершить обработку
 				if ($messageCount >= 10) { // Замените на ваше максимальное количество
-					$this->channel->basic_cancel($msg->getConsumerTag());
+					$this->rabbitMQManager->getChannel()->basic_cancel($msg->getConsumerTag());
 				}
 			}
 		};
 
-		$this->channel->basic_consume($queueName, '', false, false, false, false, $callback);
-
-		while ($this->channel->is_consuming()) {
-			$this->channel->wait();
-		}
-
-		$this->closeConnections();
+		$this->rabbitMQManager->consumeUrls($callback);
 	}
 
-	public function closeConnections()
-	{
-		$this->connection->close();
-		$this->connection->channel()->close();
-	}
+	/**
+	 * Выводит агрегированные данные из указанной базы данных.
+	 *
+	 * @param DatabaseInterface $client База данных для вывода агрегированных данных.
+	 * @return void
+	 */
+	public function printAggregatedData(DatabaseInterface $client): void {
+		// Получение агрегированных данных из базы
+		$aggregatedData = $client->getAggregatedData();
 
-	private function saveData($url, $contentLength)
-	{
-		$this->databaseQuery->saveToMariaDB($url, $contentLength);
-		$this->databaseQuery->saveToClickHouse($url, $contentLength);
+		// вывода данных.
+		$aggregatedData->print();
 	}
 }
