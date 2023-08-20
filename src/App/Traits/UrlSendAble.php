@@ -12,7 +12,7 @@ trait UrlSendAble
 	 * Отправляет массив валидных URL-ов в RabbitMQ.
 	 *
 	 * @param array $urls Массив валидных URL-ов для отправки.
-	 * @param $channel
+	 * @param AbstractChannel|AMQPChannel $channel
 	 */
 	private function sendUrlsToRabbitMQ(
 		array $urls,
