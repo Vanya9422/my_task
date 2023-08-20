@@ -3,13 +3,12 @@
 namespace App;
 
 use App\Contracts\DatabaseInterface;
-use App\Traits\UrlSendAble;
 use App\Traits\UrlValidateAble;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class UrlProcessor
 {
-	use UrlValidateAble, UrlSendAble;
+	use UrlValidateAble;
 
 	/**
 	 * Класс для обработки URL-ов и сохранения данных в базы данных.
