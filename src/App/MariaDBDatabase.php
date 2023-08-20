@@ -4,7 +4,7 @@ namespace App;
 
 use PDO;
 
-class MariaDBDatabase extends \App\BaseDatabase implements \App\DatabaseInterface {
+class MariaDBDatabase extends \App\BaseDatabase implements Contracts\DatabaseInterface {
 
 	/**
 	 * @var PDO

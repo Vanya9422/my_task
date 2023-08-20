@@ -2,10 +2,16 @@
 
 namespace App;
 
+use App\Traits\UrlSendAble;
+use App\Traits\UrlValidateAble;
+use PhpAmqpLib\Channel\AbstractChannel;
+use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class RabbitMQManager {
+
+	use UrlValidateAble, UrlSendAble;
 
 	/**
 	 * @var AMQPStreamConnection
@@ -13,9 +19,9 @@ class RabbitMQManager {
 	private AMQPStreamConnection $connection;
 
 	/**
-	 * @var \PhpAmqpLib\Channel\AbstractChannel|\PhpAmqpLib\Channel\AMQPChannel
+	 * @var AbstractChannel|AMQPChannel
 	 */
-	private \PhpAmqpLib\Channel\AbstractChannel|\PhpAmqpLib\Channel\AMQPChannel $channel;
+	private AbstractChannel|AMQPChannel $channel;
 
 	/**
 	 * @var string .env
@@ -44,23 +50,18 @@ class RabbitMQManager {
 	}
 
 	/**
-	 * Отправляет URL в очередь RabbitMQ
+	 * Отправляет URL-ы в очередь RabbitMQ для обработки.
 	 *
-	 * @param array $urls
+	 * @param array $urls Массив URL-ов, которые нужно отправить в очередь.
+	 * @throws Exceptions\ValidationException Если какой-либо URL не проходит валидацию.
 	 */
 	public function sendUrls(array $urls) {
-		// Объявление очереди 'urls', если её нет
-		$this->channel->queue_declare('urls', false, true, false, false);
+		// Валидация URL-ов с помощью метода из трейта UrlValidateAble
+		$validUrls = $this->validateUrls($urls);
 
-		foreach ($urls as $url) {
-			$message = new AMQPMessage($url);
-			$this->channel->basic_publish($message, '', 'urls');
-
-			echo "<p> Rabbit Sent: $url </p>";
-
-			$delay = rand(5, 30);
-			sleep($delay);
-		}
+		// Отправка валидных URL-ов в RabbitMQ с помощью метода из трейта UrlSendAble
+		// Второй аргумент - канал RabbitMQ, который был создан при инициализации RabbitMQManager
+		$this->sendUrlsToRabbitMQ($validUrls, $this->channel);
 	}
 
 	/**
@@ -92,9 +93,9 @@ class RabbitMQManager {
 	}
 
 	/**
-	 * @return \PhpAmqpLib\Channel\AMQPChannel|\PhpAmqpLib\Channel\AbstractChannel
+	 * @return AMQPChannel|AbstractChannel
 	 */
-	public function getChannel(): \PhpAmqpLib\Channel\AMQPChannel|\PhpAmqpLib\Channel\AbstractChannel
+	public function getChannel(): AMQPChannel|AbstractChannel
 	{
 		return $this->channel;
 	}

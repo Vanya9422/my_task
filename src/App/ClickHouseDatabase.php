@@ -3,7 +3,7 @@ namespace App;
 
 use ClickHouseDB\Client as ClickHouseClient;
 
-class ClickHouseDatabase extends \App\BaseDatabase implements \App\DatabaseInterface {
+class ClickHouseDatabase extends \App\BaseDatabase implements Contracts\DatabaseInterface {
 
 	/**
 	 * @var ClickHouseClient

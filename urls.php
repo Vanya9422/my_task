@@ -1,7 +1,7 @@
 <?php
 $urls = [];
 
-foreach (range(1,10) as $int) {
+foreach (range(0,10) as $int) {
 
 	$number = random_int(1,10000000);
 

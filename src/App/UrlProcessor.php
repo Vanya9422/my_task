@@ -2,10 +2,15 @@
 
 namespace App;
 
+use App\Contracts\DatabaseInterface;
+use App\Traits\UrlSendAble;
+use App\Traits\UrlValidateAble;
 use PhpAmqpLib\Message\AMQPMessage;
 
 class UrlProcessor
 {
+	use UrlValidateAble, UrlSendAble;
+
 	/**
 	 * Класс для обработки URL-ов и сохранения данных в базы данных.
 	 *
@@ -35,6 +40,13 @@ class UrlProcessor
 				$this->rabbitMQManager->getChannel()->basic_cancel($msg->getConsumerTag());
 			} else {
 				$url = $msg->body;
+
+				try {
+					$this->validateUrls([$url]); // Валидируем URL
+				} catch (\App\Exceptions\ValidationException $e) {
+					echo "Validation Error: " . $e->getMessage() . "<br>";
+					return; // Пропускаем невалидные URL-ы
+				}
 
 				// Сохраняем данные в MariaDB и ClickHouse
 				$this->mariaDBDatabase->saveData($url, strlen($url));

@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\Contracts;
 
 /**
  * Интерфейс для работы с базой данных.

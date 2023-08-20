@@ -31,6 +31,8 @@ try {
 
 	// закрываем соединение
 	$rabbitMQManager->closeConnections();
+} catch (\App\Exceptions\ValidationException $e) {
+	echo "Validation Error: Invalid URL '{$e->getInvalidUrl()}'.";
 } catch (\Exception $e) {
 	echo "An error occurred: " . $e->getMessage();
 }
